@@ -9,6 +9,88 @@ from solidspy.assemutil import DME, dense_assem, loadasem
 from solidspy.postprocesor import complete_disp
 
 
+#%% Interpolators
+def shape_tri6(r, s):
+    """
+    Shape functions and derivatives for a quadratic element
+    
+    Parameters
+    ----------
+    r : float
+        Horizontal coordinate of the evaluation point.
+    s : float
+        Vertical coordinate of the evaluation point.
+
+    Returns
+    -------
+    N : ndarray (float)
+        Array with the shape functions evaluated at the point (r, s).
+    dNdr : ndarray (float)
+        Array with the derivative of the shape functions evaluated at
+        the point (r, s).
+    """
+    N = np.array(
+        [(1 - r - s) - 2*r*(1 - r - s) - 2*s*(1 - r - s),
+         r - 2*r*(1 - r - s) - 2*r*s,
+         s - 2*r*s - 2*s*(1-r-s),
+         4*r*(1 - r - s),
+         4*r*s,
+         4*s*(1 - r - s)])
+    dNdr = np.array([
+        [4*r + 4*s - 3, 4*r - 1, 0, -8*r - 4*s + 4, 4*s, -4*s],
+        [4*r + 4*s - 3, 0, 4*s - 1, -4*r, 4*r, -4*r - 8*s + 4]])
+    return N, dNdr
+
+
+def shape_quad9(r, s):
+    """
+    Shape functions and derivatives for a biquadratic element
+    
+    Parameters
+    ----------
+    r : float
+        Horizontal coordinate of the evaluation point.
+    s : float
+        Vertical coordinate of the evaluation point.
+
+    Returns
+    -------
+    N : ndarray (float)
+        Array with the shape functions evaluated at the point (r, s).
+    dNdr : ndarray (float)
+        Array with the derivative of the shape functions evaluated at
+        the point (r, s).
+    """
+    N = np.array([0.25*r*s*(r - 1.0)*(s - 1.0),
+                  0.25*r*s*(r + 1.0)*(s - 1.0),
+                  0.25*r*s*(r + 1.0)*(s + 1.0),
+                  0.25*r*s*(r - 1.0)*(s + 1.0),
+                  0.5*s*(-r**2 + 1.0)*(s - 1.0),
+                  0.5*r*(r + 1.0)*(-s**2 + 1.0),
+                  0.5*s*(-r**2 + 1.0)*(s + 1.0),
+                  0.5*r*(r - 1.0)*(-s**2 + 1.0),
+                  (-r**2 + 1.0)*(-s**2 + 1.0)])
+    dNdr = np.array([
+            [0.25*s*(2.0*r - 1.0)*(s - 1.0),
+            0.25*s*(2.0*r + 1.0)*(s - 1.0),
+            0.25*s*(2.0*r + 1.0)*(s + 1.0),
+            0.25*s*(2.0*r - 1.0)*(s + 1.0),
+            r*s*(-s + 1.0),
+            -0.5*(2.0*r + 1.0)*(s**2 - 1.0),
+            -r*s*(s + 1.0),
+            0.5*(-2.0*r + 1.0)*(s**2 - 1.0),
+            2.0*r*(s**2 - 1.0)],
+            [0.25*r*(r - 1.0)*(2.0*s - 1.0),
+            0.25*r*(r + 1.0)*(2.0*s - 1.0),
+            0.25*r*(r + 1.0)*(2.0*s + 1.0),
+            0.25*r*(r - 1.0)*(2.0*s + 1.0),
+            0.5*(r**2 - 1.0)*(-2.0*s + 1.0),
+            -r*s*(r + 1.0),
+            -0.5*(r**2 - 1.0)*(2.0*s + 1.0),
+            r*s*(-r + 1.0),
+            2.0*s*(r**2 - 1.0)]])
+    return N, dNdr
+
 
 def shape_brick8(r, s, t):
     """
@@ -53,6 +135,7 @@ def shape_brick8(r, s, t):
     return 0.125*N, 0.125*dNdr
 
 
+#%% Interpolation matrices
 def interp_mat_3d(r, s, t, coord):
     """
     Shape functions and derivatives for a trilinear element
@@ -103,6 +186,7 @@ def interp_mat_3d(r, s, t, coord):
     return H, B, det
 
 
+#%% Elements
 def elast_brick8(coord, params):
     """Brick element with 8 nodes for classic elasticity
     
