@@ -28,12 +28,19 @@ Features
 The library includes:
 
 * Lagrange Elements with the following interpolators:
+
   - 6-noded triangles.
+
   - 9-noded quadrilateral.
+
   - 8-noded brick.
+
 * The following "physics":
+
   - Classical elasticity.
+
   - Micropolar elasticity.
+
   - Corrected Couple-stress elasticity.
 
 
