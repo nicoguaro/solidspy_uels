@@ -15,7 +15,7 @@ from solidspy.postprocesor import complete_disp
 
 # SolidsPy UELs
 from solidspy_uels.solidspy_uels import shape_brick8, shape_tri6, shape_quad9
-from solidspy_uels.solidspy_uels import elast_brick8
+from solidspy_uels.solidspy_uels import elast_brick8, elast_tri6, elast_quad9
 
 
 #%% Test interpolators
@@ -102,8 +102,59 @@ def test_interp_mat_3d():
 
 
 #%% Test elements
-def test_elast_brick8():
+def test_elast_tri6():
+    ## One element
+    coords = np.array([
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+            [0.5, 0.0],
+            [0.5, 0.5],
+            [0.0, 0.5]])
+    params = [1, 1/4, 1]
 
+    els = np.array([[0, 1, 0, 0, 1, 2, 3, 4, 5]])
+
+    # Element without constraints
+    cons = np.zeros((6, 2))
+    pts = np.column_stack((range(0, 6), coords))
+    mats = np.array([params])
+    assem_op, bc_array, neq = DME(cons, els, ndof_node=2, 
+                                  ndof_el=lambda iet: 12,
+                                  ndof_el_max=12)
+    stiff, mass = dense_assem(els, mats, pts, neq, assem_op, uel=elast_tri6)
+    assert np.allclose(assem_op, range(0, 12))
+
+
+def test_elast_quad9():
+    ## One element
+    coords = np.array([
+            [-1.0,-1.0],
+            [ 1.0,-1.0],
+            [ 1.0, 1.0],
+            [-1.0, 1.0],
+            [ 0.0,-1.0],
+            [ 1.0, 0.0],
+            [ 0.0, 1.0],
+            [-1.0, 0.0],
+            [ 0.0, 0.0]])
+    params = [1, 1/4, 1]
+
+    els = np.array([[0, 1, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8]])
+
+    # Element without constraints
+    cons = np.zeros((9, 2))
+    pts = np.column_stack((range(0, 9), coords))
+    mats = np.array([params])
+    assem_op, bc_array, neq = DME(cons, els, ndof_node=2, 
+                                  ndof_el=lambda iet: 18,
+                                  ndof_el_max=18)
+    stiff, mass = dense_assem(els, mats, pts, neq, assem_op, uel=elast_quad9)
+    assert np.allclose(assem_op, range(0, 18))
+
+
+
+def test_elast_brick8():
     # One element in uniaxial load
     coords = np.array([
             [-1, -1, -1],
