@@ -256,8 +256,8 @@ def elast_tri6(coord, params):
     C = np.array([
         [2*mu + lamda, lamda, 0],
         [lamda, 2*mu + lamda, 0],
-        [0, 0, mu,]])
-    gpts, gwts = gau.gauss_tri(order=2)
+        [0, 0, mu]])
+    gpts, gwts = gau.gauss_tri(order=3)
     for cont in range(gpts.shape[0]):
         r = gpts[cont, 0]
         s = gpts[cont, 1]
@@ -302,7 +302,7 @@ def elast_quad9(coord, params):
         r = gpts[cont, 0]
         s = gpts[cont, 1]
         H, B, det = interp_mat_2d(r, s, coord, shape_quad9)
-        factor = 0.5 * det * gwts[cont]
+        factor = det * gwts[cont]
         stiff_mat  += factor * (B.T @ C @ B)
         mass_mat += rho*factor * (H.T @ H)
     return stiff_mat, mass_mat
