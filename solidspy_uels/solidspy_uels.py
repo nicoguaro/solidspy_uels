@@ -136,10 +136,9 @@ def shape_brick8(r, s, t):
 
 
 #%% Interpolation matrices
-def interp_mat_2d(r, s, coord, element):
+def elast_mat_2d(r, s, coord, element):
     """
-    Shape functions and derivatives for a quadratic element
-    for elasticity
+    Interpolation matrices for elements for plane elasticity
     
     Parameters
     ----------
@@ -164,22 +163,22 @@ def interp_mat_2d(r, s, coord, element):
     N, dNdr = element(r, s)
     ndof = N.shape[0]
     det, jaco_inv = jacoper(dNdr, coord)
-    dHdx = jaco_inv @ dNdr
+    dNdx = jaco_inv @ dNdr
     H = np.zeros((2, 2*ndof))
     B = np.zeros((3, 2*ndof))
     H[0, 0::2] = N
     H[1, 1::2] = N
-    B[0, 0::2] = dHdx[0, :]
-    B[1, 1::2] = dHdx[1, :]
-    B[2, 0::2] = dHdx[1, :]
-    B[2, 1::2] = dHdx[0, :]
+    B[0, 0::2] = dNdx[0, :]
+    B[1, 1::2] = dNdx[1, :]
+    B[2, 0::2] = dNdx[1, :]
+    B[2, 1::2] = dNdx[0, :]
     return H, B, det
 
 
-def interp_mat_3d(r, s, t, coord):
+def elast_mat_3d(r, s, t, coord):
     """
-    Shape functions and derivatives for a trilinear element
-    for elasticity
+    Interpolation matrices for a trilinear element for
+    elasticity
     
     Parameters
     ----------
@@ -206,27 +205,74 @@ def interp_mat_3d(r, s, t, coord):
     N, dNdr = shape_brick8(r, s, t) # This line would be different for
                                     # other element types
     det, jaco_inv = jacoper(dNdr, coord)
-    dHdx = jaco_inv @ dNdr
+    dNdx = jaco_inv @ dNdr
     H = np.zeros((3, 24))
     B = np.zeros((6, 24))
     H[0, 0::3] = N
     H[1, 1::3] = N
     H[2, 2::3] = N
-    B[0, 0::3] = dHdx[0, :]
-    B[1, 1::3] = dHdx[1, :]
-    B[2, 2::3] = dHdx[2, :]
+    B[0, 0::3] = dNdx[0, :]
+    B[1, 1::3] = dNdx[1, :]
+    B[2, 2::3] = dNdx[2, :]
     
-    B[3, 1::3] = dHdx[2, :]
-    B[3, 2::3] = dHdx[1, :]
+    B[3, 1::3] = dNdx[2, :]
+    B[3, 2::3] = dNdx[1, :]
     
-    B[4, 0::3] = dHdx[2, :]
-    B[4, 2::3] = dHdx[0, :]
+    B[4, 0::3] = dNdx[2, :]
+    B[4, 2::3] = dNdx[0, :]
     
-    B[5, 0::3] = dHdx[1, :]
-    B[5, 1::3] = dHdx[0, :]   
+    B[5, 0::3] = dNdx[1, :]
+    B[5, 1::3] = dNdx[0, :]   
     return H, B, det
 
- 
+
+def micropolar_mat_2d(r, s, coord, element):
+    """
+    Interpolation matrices for a quadratic element for plane
+    elasticity
+    
+    Parameters
+    ----------
+    r : float
+        Horizontal coordinate of the evaluation point.
+    s : float
+        Vertical coordinate of the evaluation point.
+    coord : ndarray (float)
+        Coordinates of the element.
+
+    Returns
+    -------
+    H : ndarray (float)
+        Array with the shape functions evaluated at the point (r, s)
+        for each degree of freedom.
+    B : ndarray (float)
+        Array with the displacement to strain matrix evaluated
+        at the point (r, s).
+    det : float
+        Determinant of the Jacobian.
+    """
+    N, dNdr = element(r, s)
+    ndof = N.shape[0]
+    det, jaco_inv = jacoper(dNdr, coord)
+    dNdx = jaco_inv @ dNdr
+    B = np.zeros((6, 3*ndof))
+    H = np.zeros((3, 3*ndof))
+
+    H[0, 0::3] = N
+    H[1, 1::3] = N
+    H[2, 2::3] = N
+    B[0, 0::3] = dNdx[0, :]
+    B[1, 1::3] = dNdx[1, :]
+    B[2, 1::3] = dNdx[0, :]
+    B[2, 2::3] = N
+    B[3, 0::3] = dNdx[1, :]
+    B[3, 2::3] = -N
+    B[4, 2::3] = dNdx[0, :]
+    B[5, 2::3] = dNdx[1, :]
+   
+    return H, B, det
+
+
 #%% Elements
 def elast_tri6(coord, params):
     """
@@ -261,7 +307,7 @@ def elast_tri6(coord, params):
     for cont in range(gpts.shape[0]):
         r = gpts[cont, 0]
         s = gpts[cont, 1]
-        H, B, det = interp_mat_2d(r, s, coord, shape_tri6)
+        H, B, det = elast_mat_2d(r, s, coord, shape_tri6)
         factor = 0.5 * det * gwts[cont]
         stiff_mat  += factor * (B.T @ C @ B)
         mass_mat += rho*factor * (H.T @ H)
@@ -301,7 +347,7 @@ def elast_quad9(coord, params):
     for cont in range(gpts.shape[0]):
         r = gpts[cont, 0]
         s = gpts[cont, 1]
-        H, B, det = interp_mat_2d(r, s, coord, shape_quad9)
+        H, B, det = elast_mat_2d(r, s, coord, shape_quad9)
         factor = det * gwts[cont]
         stiff_mat  += factor * (B.T @ C @ B)
         mass_mat += rho*factor * (H.T @ H)
@@ -343,12 +389,112 @@ def elast_brick8(coord, params):
         r = gpts[cont, 0]
         s = gpts[cont, 1]
         t = gpts[cont, 2]
-        H, B, det = interp_mat_3d(r, s, t, coord)
+        H, B, det = elast_mat_3d(r, s, t, coord)
         factor = det * gwts[cont]
         stiff_mat  += factor * (B.T @ C @ B)
         mass_mat += rho*factor * (H.T @ H)
     return stiff_mat, mass_mat
 
+
+def micropolar_tri6(coord, params):
+    """
+    Triangular element with 6 nodes for micropolar elasticity
+    under plane-strain as presented in [Guarin2020]_
+    
+    Parameters
+    ----------
+    coord : coord
+        Coordinates of the element.
+    params : list
+        List with material parameters in the following order:
+        [Young modulus, Poisson coefficient, couple modulus,
+         bending modulus, mass density, inertia density].
+
+    Returns
+    -------
+    stiff_mat : ndarray (float)
+        Local stifness matrix.
+    mass_mat : ndarray (float)
+        Local mass matrix.
+
+    References
+    ----------
+    .. [Guarin2020] Guarín-Zapata, N., Gomez, J., Valencia, C.,
+       Dargush, G. F., & Hadjesfandiari, A. R. (2020).
+       Finite element modeling of micropolar-based phononic crystals.
+       Wave Motion, 92, 102406.
+    """
+    E, nu, alpha, xi, rho, J = params
+    lam = E*nu/((1 + nu)*(1 - 2*nu))
+    mu = 0.5*E/(1 + nu)
+    stiff_mat = np.zeros((18, 18))
+    mass_mat = np.zeros((18, 18))
+    stiff = np.zeros((6, 6))
+    stiff[0:2, 0:2] = [[lam + 2*mu, lam], [lam, lam + 2*mu]]
+    stiff[2:4, 2:4] = [[mu + alpha, mu - alpha], [mu - alpha, mu + alpha]]
+    stiff[4:6, 4:6] = [[xi, 0], [0, xi]]
+    inertia = np.diag([rho, rho, J])
+    gpts, gwts = gau.gauss_tri(order=3)
+    for cont in range(gpts.shape[0]):
+        r = gpts[cont, 0]
+        s = gpts[cont, 1]
+        H, B, det = micropolar_mat_2d(r, s, coord, shape_tri6)
+        factor = 0.5 * det * gwts[cont]
+        stiff_mat += factor * B.T @ stiff @ B
+        mass_mat += factor* H.T @ inertia @ H
+        
+    return stiff_mat, mass_mat
+
+
+def micropolar_quad9(coord, params):
+    """
+    Quadrilateral element with 9 nodes for micropolar elasticity
+    under plane-strain as presented in [Guarin2020]_
+    
+    Parameters
+    ----------
+    coord : coord
+        Coordinates of the element.
+    params : list
+        List with material parameters in the following order:
+        [Young modulus, Poisson coefficient, couple modulus,
+         bending modulus, mass density, inertia density].
+
+    Returns
+    -------
+    stiff_mat : ndarray (float)
+        Local stifness matrix.
+    mass_mat : ndarray (float)
+        Local mass matrix.
+
+    References
+    ----------
+    .. [Guarin2020] Guarín-Zapata, N., Gomez, J., Valencia, C.,
+       Dargush, G. F., & Hadjesfandiari, A. R. (2020).
+       Finite element modeling of micropolar-based phononic crystals.
+       Wave Motion, 92, 102406.
+    """
+    E, nu, alpha, xi, rho, J = params
+    lam = E*nu/((1 + nu)*(1 - 2*nu))
+    mu = 0.5*E/(1 + nu)
+    stiff_mat = np.zeros((27, 27))
+    mass_mat = np.zeros((27, 27))
+    stiff = np.zeros((6, 6))
+    stiff[0:2, 0:2] = [[lam + 2*mu, lam], [lam, lam + 2*mu]]
+    stiff[2:4, 2:4] = [[mu + alpha, mu - alpha], [mu - alpha, mu + alpha]]
+    stiff[4:6, 4:6] = [[xi, 0], [0, xi]]
+    inertia = np.diag([rho, rho, J])
+    npts = 3
+    gpts, gwts = gau.gauss_nd(npts)
+    for cont in range(0, npts**2):
+        r = gpts[cont, 0]
+        s = gpts[cont, 1]
+        H, B, det = micropolar_mat_2d(r, s, coord, shape_quad9)
+        factor = det * gwts[cont]
+        stiff_mat += factor * B.T @ stiff @ B
+        mass_mat += factor* H.T @ inertia @ H
+        
+    return stiff_mat, mass_mat
 
 
 #%% Checks
